@@ -46,8 +46,8 @@ for epoch in range(epochs):
     if i % batch_size == 0:
       if not os.path.exists(LOGDIR):
         os.makedirs(LOGDIR)
-      checkpoint_path = os.path.join(LOGDIR, "model.ckpt", (epoch * batch_size + i))
-      filename = saver.save(sess, checkpoint_path)
+      checkpoint_path = os.path.join(LOGDIR, "model.ckpt")
+      filename = saver.save(sess, checkpoint_path, (epoch * batch_size + i))
   print("Model saved in file: %s" % filename)
 
 print("Run the command line:\n" \
