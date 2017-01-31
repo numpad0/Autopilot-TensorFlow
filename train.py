@@ -17,6 +17,7 @@ sess.run(tf.initialize_all_variables())
 
 # create a summary to monitor cost tensor
 tf.scalar_summary("loss", loss)
+
 # merge all summaries into a single op
 merged_summary_op = tf.merge_all_summaries()
 
@@ -40,14 +41,15 @@ for epoch in range(epochs):
       print("Epoch: %d, Step: %d, Loss: %g" % (epoch, epoch * batch_size + i, loss_value))
 
     # write logs at every iteration
-    summary = merged_summary_op.eval(feed_dict={model.x:xs, model.y_: ys, model.keep_prob: 1.0})
+    tf.summary.image(name, model.h_conv5, max_outputs=batch_size, collections=None)
+    summary = tf.merge_all_summaries()
     summary_writer.add_summary(summary, epoch * batch_size + i)
 
     if i % batch_size == 0:
       if not os.path.exists(LOGDIR):
         os.makedirs(LOGDIR)
       checkpoint_path = os.path.join(LOGDIR, "model.ckpt")
-      filename = saver.save(sess, checkpoint_path, (epoch * batch_size + i))
+      filename = saver.save(sess, checkpoint_path, epoch)
   print("Model saved in file: %s" % filename)
 
 print("Run the command line:\n" \

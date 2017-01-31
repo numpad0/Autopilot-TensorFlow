@@ -16,6 +16,9 @@ x = tf.placeholder(tf.float32, shape=[None, 66, 200, 3])
 y_ = tf.placeholder(tf.float32, shape=[None, 1])
 
 x_image = x
+# TODO: add input normalization
+# TODO: add multiple planes support
+
 
 #first convolutional layer
 W_conv1 = weight_variable([5, 5, 3, 24])
@@ -73,7 +76,7 @@ h_fc3 = tf.nn.relu(tf.matmul(h_fc2_drop, W_fc3) + b_fc3)
 
 h_fc3_drop = tf.nn.dropout(h_fc3, keep_prob)
 
-#FCL 3
+#FCL 4
 W_fc4 = weight_variable([50, 10])
 b_fc4 = bias_variable([10])
 
