@@ -13,19 +13,19 @@ train_vars = tf.trainable_variables()
 
 loss = tf.reduce_mean(tf.square(tf.sub(model.y_, model.y))) + tf.add_n([tf.nn.l2_loss(v) for v in train_vars]) * L2NormConst
 train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
-sess.run(tf.initialize_all_variables())
+sess.run(tf.global_variables_initializer())
 
 # create a summary to monitor cost tensor
-tf.scalar_summary("loss", loss)
+tf.summary.scalar("loss", loss)
 
 # merge all summaries into a single op
-merged_summary_op = tf.merge_all_summaries()
+merged_summary_op = tf.summary.merge_all()
 
 saver = tf.train.Saver()
 
 # op to write logs to Tensorboard
 logs_path = './logs'
-summary_writer = tf.train.SummaryWriter(logs_path, graph=tf.get_default_graph())
+summary_writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())
 
 epochs = 30
 batch_size = 100
@@ -41,9 +41,9 @@ for epoch in range(epochs):
       print("Epoch: %d, Step: %d, Loss: %g" % (epoch, epoch * batch_size + i, loss_value))
 
     # write logs at every iteration
-    tf.summary.image(name, model.h_conv5, max_outputs=batch_size, collections=None)
-    summary = tf.merge_all_summaries()
-    summary_writer.add_summary(summary, epoch * batch_size + i)
+    #tf.summary.image(str(epoch), model.h_conv5, max_outputs=batch_size, collections=None)
+    #summary = tf.summary.merge_all()
+    #summary_writer.add_summary(summary, epoch * batch_size + i)
 
     if i % batch_size == 0:
       if not os.path.exists(LOGDIR):

@@ -15,7 +15,12 @@ with open("driving_dataset/data.txt") as f:
         #the paper by Nvidia uses the inverse of the turning radius,
         #but steering wheel angle is proportional to the inverse of turning radius
         #so the steering wheel angle in radians is used as the output
-        ys.append(float(line.split()[1]) * scipy.pi / 180)
+        # ys.append(float(line.split()[1]) * scipy.pi / 180)
+        # TODO: variable normalization support
+        # for gamepad input, value range is -32767 to 32767
+        # and 270 degrees between -135 to 135 degrees are mapped to it
+        ys.append(float(line.split()[1]) * (135/32767) * (scipy.pi / 180))
+
 
 #get number of images
 num_images = len(xs)

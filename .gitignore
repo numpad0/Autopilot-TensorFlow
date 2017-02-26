@@ -1,4 +1,6 @@
 driving_dataset/
+saved_dataset/
+dataset/
 logs/
 __pycache__/
 save/

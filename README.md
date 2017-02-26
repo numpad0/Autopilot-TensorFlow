@@ -21,12 +21,15 @@ To visualize training using Tensorboard use `tensorboard --logdir=./logs`, then 
 - CuDNN(copy to CUDA install dir) from https://developer.nvidia.com/rdp/cudnn-download
 - Tensorflow-gpu from https://www.tensorflow.org/install/install_windows
 
+
 - pip install following from http://www.lfd.uci.edu/~gohlke/pythonlibs/
 - numpy
 - scipy
 - opencv
 
+
 - pip install pillow
+
 
 - python run_dataset.py
 
