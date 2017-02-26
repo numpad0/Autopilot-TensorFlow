@@ -14,7 +14,7 @@ To visualize training using Tensorboard use `tensorboard --logdir=./logs`, then 
 
 
 # How to get it running on Windows with CUDA
-## (For those who don't have a Linux box with a good GPU)
+## (For those who don't have a spare Linux box with a good GPU, e.g. me)
 
 - Python __3.5.2__ from https://www.python.org/downloads/release/python-352/
 - CUDA Toolkit from https://developer.nvidia.com/cuda-toolkit
@@ -23,17 +23,11 @@ To visualize training using Tensorboard use `tensorboard --logdir=./logs`, then 
 
 
 - pip install following from http://www.lfd.uci.edu/~gohlke/pythonlibs/
-- numpy
-- scipy
-- opencv
+    - numpy
+    - scipy
+    - opencv
 
 
 - pip install pillow
 
-
 - python run_dataset.py
-
-
-
-
-
