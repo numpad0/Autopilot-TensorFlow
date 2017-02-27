@@ -13,9 +13,14 @@ rows,cols = img.shape
 
 smoothed_angle = 0
 
+xs = []
+with open("driving_dataset/data.txt") as f:
+    for line in f:
+        xs.append("driving_dataset/" + line.split()[0])
+
 i = 0
 while(cv2.waitKey(10) != ord('q')):
-    full_image = scipy.misc.imread("driving_dataset/" + str(i) + ".jpg", mode="RGB")
+    full_image = scipy.misc.imread(xs[i], mode="RGB")
     image = scipy.misc.imresize(full_image[-150:], [66, 200]) / 255.0
     degrees = model.y.eval(feed_dict={model.x: [image], model.keep_prob: 1.0})[0][0] * 180.0 / scipy.pi
     print("Predicted steering angle: " + str(degrees) + " degrees")

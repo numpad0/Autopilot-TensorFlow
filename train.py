@@ -49,7 +49,8 @@ for epoch in range(epochs):
       if not os.path.exists(LOGDIR):
         os.makedirs(LOGDIR)
       checkpoint_path = os.path.join(LOGDIR, "model.ckpt")
-      filename = saver.save(sess, checkpoint_path, epoch)
+      #filename = saver.save(sess, checkpoint_path, epoch)
+      filename = saver.save(sess, checkpoint_path)
   print("Model saved in file: %s" % filename)
 
 print("Run the command line:\n" \

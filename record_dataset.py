@@ -26,6 +26,8 @@ while ctr > 0:
     print("Starting capture in:", str(ctr))
     time.sleep(1)
 
+# TODO: make it threaded because I think it's not working realtime-ish on my PC
+# esp. image compression and logging, current version has a problem when C-c'd
 while(cv2.waitKey(10) != ord('q')):
     ret, frame = cap.read()
     image = scipy.misc.imresize(frame, [66, 200]) / 255.0
@@ -41,13 +43,9 @@ while(cv2.waitKey(10) != ord('q')):
         print("wheel: ", wheel, "\tgas:", acc, "\tbrake: ", brake, "\tframe: ", i)
         filename = (str(start_time) + "." + str(i) + ".jpg")
         with open("saved_dataset\dataplus.txt", "a") as dataplus:
-            print(filename, wheel, " ", acc, " ", brake, file=dataplus)
+            print(filename, wheel, acc, brake, file=dataplus)
         with open("saved_dataset\data.txt", "a") as data:
             print(filename, wheel, file=data)
-
-    #image = scipy.misc.imresize(full_image[-150:], [66, 200]) / 255.0
-    #degrees = model.y.eval(feed_dict={model.x: [image], model.keep_prob: 1.0})[0][0] * 180.0 / scipy.pi
-    #print("Predicted steering angle: " + str(degrees) + " degrees")
 
     scipy.misc.imsave("saved_dataset/" + filename, frame)
     cv2.imshow("frame", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))

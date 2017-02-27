@@ -20,7 +20,7 @@ vjoy = pyvjoy.VJoyDevice(1)
 vjoy.reset()
 vjoy.reset_buttons()
 
-while(cv2.waitKey(10) != ord('q')):
+while(cv2.waitKey(1) != ord('q')):
     ret, frame = cap.read()
     image = scipy.misc.imresize(frame, [66, 200]) / 255.0
     degrees = model.y.eval(feed_dict={model.x: [image], model.keep_prob: 1.0})[0][0] * 180 / scipy.pi
