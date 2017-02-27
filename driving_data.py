@@ -19,7 +19,7 @@ with open("driving_dataset/data.txt") as f:
         # TODO: variable normalization support
         # for gamepad input, value range is -32767 to 32767
         # and 270 degrees between -135 to 135 degrees are mapped to it
-        ys.append(float(line.split()[1]) * (135/32767))
+        ys.append(float(line.split()[1]) * (135/32767) * (scipy.pi / 180))
 
 
 #get number of images
