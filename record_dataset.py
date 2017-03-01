@@ -28,6 +28,13 @@ while ctr > 0:
 
 # TODO: make it threaded because I think it's not working realtime-ish on my PC
 # esp. image compression and logging, current version has a problem when C-c'd
+# TODO: variable normalization support
+# for gamepad input, value range is -32767 to 32767
+# and 270 degrees between -135 to 135 degrees are mapped to it
+#ys.append(float(line.split()[1]) * (135/32767) * (scipy.pi / 180))
+
+# make it threaded and realtime
+
 while(cv2.waitKey(10) != ord('q')):
     ret, frame = cap.read()
     image = scipy.misc.imresize(frame, [66, 200]) / 255.0
@@ -35,7 +42,7 @@ while(cv2.waitKey(10) != ord('q')):
     events = get_gamepad()
     for event in events:
         if event.code == "ABS_X":
-            wheel = event.state
+            wheel = (event.state * (135/32767) * (scipy.pi / 180))
         if event.code == "ABS_RZ":
             acc = event.state
         if event.code == "ABS_Z":
