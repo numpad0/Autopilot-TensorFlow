@@ -28,8 +28,7 @@ while ctr > 0:
 
 # TODO: make it threaded because I think it's not working realtime-ish on my PC
 # esp. image compression and logging, current version has a problem when C-c'd
-# TODO: couple it with vJoy so that this script pass-through input rather than
-# listening to side by side with apps
+# TODO: variable normalization support
 # for gamepad input, value range is -32767 to 32767
 # and 270 degrees between -135 to 135 degrees are mapped to it
 #ys.append(float(line.split()[1]) * (135/32767) * (scipy.pi / 180))
