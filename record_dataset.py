@@ -56,10 +56,10 @@ def show_image():
         time.sleep(0.2)
 
 def capture_wait():
-    ctr = 3
     print("Press and hold gas and brake all the way to start/stop recording")
+    ctr = 3
     while ctr > 0:
-        print("Starting capture in:", str(ctr))
+        print("Continuing in:", str(ctr))
         ctr += -1
         time.sleep(1)
 
@@ -85,8 +85,10 @@ def signal_handler(signal, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-while(cv2.waitKey(10) != ord('q')):
+capture_wait()
 
+while(True):
+    time.sleep(0.01)
     filename = str(str(start_time) + "." + str(i) + ".jpg")
     status  = process_gamepad()
     image_queue = queue.Queue()
@@ -111,12 +113,13 @@ while(cv2.waitKey(10) != ord('q')):
 
     if (acc > 250) and (brake > 250) and (accumulated_brake > (250 * 10 * 20)):
         accumulated_brake = 0
-        capture_wait()
         if capture_enable:
+            print("Stopping capture")
             capture_enable = False
         else:
+            print("Starting capture")
             capture_enable = True
-
+        capture_wait()
     i += 1
 
 print("Ending capture")
