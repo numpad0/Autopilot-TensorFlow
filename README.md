@@ -26,6 +26,7 @@ To visualize training using Tensorboard use `tensorboard --logdir=./logs`, then 
     - numpy
     - scipy
     - opencv
+    - pygame (for recording)
 
 
 - pip install pillow

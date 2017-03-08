@@ -8,118 +8,116 @@ import logging
 import queue
 import signal
 import sys
+import queue
+import pygame
 from subprocess import call
-from inputs import devices
-from inputs import get_gamepad
 
+# objects and numbers
 img = cv2.imread('steering_wheel_image.jpg',0)
 rows,cols = img.shape
 
 cap = cv2.VideoCapture(1)
+#TODO: above line contains a magic number
 
 smoothed_angle = 0
-
 wheel = 0
 acc = 0
 brake = 0
-start_time = (int(time.time()))
 i = 0
-
 accumulated_brake = 0
 capture_enable = False
+start_time = (int(time.time()))
+input_queue = queue.Queue()
+image_queue = queue.Queue()
+clock = pygame.time.Clock()
+shutdown_signal = False
 
-
-# aiming for input sampling frequency at 125Hz/8ms
-# NVIDIA paper says 10fps ... what about 8 * 12 = 96ms / 10.417fps
-
-
-# TODO: make it threaded because I think it's not working realtime-ish on my PC
-# esp. image compression and logging, current version has a problem when C-c'd
-# TODO: variable normalization support
-# for gamepad input, value range is -32767 to 32767
-# and 270 degrees between -135 to 135 degrees are mapped to it
-#ys.append(float(line.split()[1]) * (135/32767) * (scipy.pi / 180))
-
-# make it threaded and realtime
-
+# functions
 def capture_image(filename):
     ret, frame = cap.read()
-    image = scipy.misc.imresize(frame, [66, 200]) / 255.0
+    #image = scipy.misc.imresize(frame, [66, 200]) / 255.0
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    scipy.misc.imsave("saved_dataset/" + filename, frame)
+    image = (filename, frame)
+    image_queue.put(image)
 
-def show_image():
-    time.sleep(1)
-    while True:
-        if not image_queue.empty():
-            cv2.imshow("frame", cv2.cvtColor(image_queue.get(), cv2.COLOR_RGB2BGR))
-        time.sleep(0.2)
+def store_image():
+    while(shutdown_signal == False and image_queue.empty != True):
+        image = image_queue.get()
+        scipy.misc.imsave("saved_dataset/" + image[0], image[1])
+    cv2.imshow("frame", cv2.cvtColor(image[1], cv2.COLOR_RGB2BGR))
 
-def capture_wait():
-    print("Press and hold gas and brake all the way to start/stop recording")
-    ctr = 3
-    while ctr > 0:
-        print("Continuing in:", str(ctr))
-        ctr += -1
-        time.sleep(1)
-
-def process_gamepad():
-    events = get_gamepad()
-    global wheel
-    global acc
-    global brake
-    for event in events:
-        if event.code == "ABS_X":
-            wheel = (event.state * (135/32767))
-        if event.code == "ABS_RZ":
-            acc = event.state
-        if event.code == "ABS_Z":
-            brake = event.state
+def store_driving_data():
+    with open("saved_dataset\dataplus.txt", "a") as dataplus, open("saved_dataset\data.txt", "a") as data:
+        while(input_queue.empty() != True):
+            vals = input_queue.get()
+            print(vals[0], vals[1], vals[2], vals[3], file=dataplus)
+            print(vals[0], vals[1],file=data)
+        data.flush()
+        dataplus.flush()
 
 def signal_handler(signal, frame):
+    global shutdown_signal
+    shutdown_signal = True
+    print("SIGINT received")
+    time.sleep(0.5)
     cap.release()
     cv2.destroyAllWindows()
-    data.flush()
-    dataplus.flush()
+    pygame.quit()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
-capture_wait()
+pygame.init()
+joystick = pygame.joystick.Joystick(0)
+# TODO: above line contains magic number
+joystick.init()
+# init
+print(str(joystick.get_name()))
+print(str(joystick.get_numaxes()))
 
+time.sleep(5)
+
+# main loop
 while(True):
-    time.sleep(0.01)
+    pygame.event.pump()
     filename = str(str(start_time) + "." + str(i) + ".jpg")
-    status  = process_gamepad()
-    image_queue = queue.Queue()
-    #showim = threading.Thread(target=show_image, name="showim", args=())
-    #showim.start()
-
+    for event in pygame.event.get(): # event handling loop
+        if event.type == pygame.JOYAXISMOTION:
+            axis = event.dict['axis']
+            value = event.dict['value']
+            if (axis == 0):
+                wheel = (value * 135)
+            if (axis == 1):
+                if value < 0:
+                    acc = 0
+                    brake = (-1) * value
+                else:
+                    acc = value
+                    brake = 0
+        if event.type == pygame.JOYBUTTONUP:
+                button = event.button
+                if button == 3:
+                    start_time = (int(time.time()))
+                    capture_enable = True
+                    print("starting capture")
+                if button == 2:
+                    capture_enable = False
+                    i = 0
+                    print("stopping capture")
+    pygame.event.clear()
+    print("wheel: ", wheel, " gas:", acc, " brake: ", brake, " frame: ", i)
     if capture_enable == True:
-        #frame = capture_image(filename,)
-        with open("saved_dataset\dataplus.txt", "a") as dataplus:
-            print(filename, wheel, acc, brake, file=dataplus)
-        with open("saved_dataset\data.txt", "a") as data:
-            print(filename, wheel, file=data)
-        print("wheel: ", wheel, "\tgas:", acc, "\tbrake: ", brake, "\tframe: ", i)
         capim = threading.Thread(target=capture_image, name="capim", args=(filename,))
         capim.start()
+        input_val = (filename, wheel, acc, brake)
+        input_queue.put(input_val)
 
-    else:
-        print("PAUSED ", "wheel: ", wheel, "\tgas:", acc, "\tbrake: ", brake, "\tframe: ", i)
-
-    if (acc > 250) and (brake > 250) and (accumulated_brake < (250 * 10 * 20)):
-        accumulated_brake += brake
-
-    if (acc > 250) and (brake > 250) and (accumulated_brake > (250 * 10 * 20)):
-        accumulated_brake = 0
-        if capture_enable:
-            print("Stopping capture")
-            capture_enable = False
-        else:
-            print("Starting capture")
-            capture_enable = True
-        capture_wait()
+    if i % 125 == 0:
+        storedata = threading.Thread(target=store_driving_data, name="storedata", args=())
+        storedata.start()
+        storeimage = threading.Thread(target=store_image, name="storeimage", args=())
+        storeimage.start()
+    clock.tick(25)
     i += 1
 
 print("Ending capture")
