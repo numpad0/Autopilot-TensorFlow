@@ -41,14 +41,14 @@ def capture_image(filename):
     image_queue.put(image)
 
 def store_image():
-    while(shutdown_signal == False and image_queue.empty != True):
+    while(shutdown_signal == False and image_queue.empty == False):
         image = image_queue.get()
         scipy.misc.imsave("saved_dataset/" + image[0], image[1])
-    cv2.imshow("frame", cv2.cvtColor(image[1], cv2.COLOR_RGB2BGR))
+    #cv2.imshow("frame", cv2.cvtColor(image[1], cv2.COLOR_RGB2BGR))
 
 def store_driving_data():
     with open("saved_dataset\dataplus.txt", "a") as dataplus, open("saved_dataset\data.txt", "a") as data:
-        while(input_queue.empty() != True):
+        while(input_queue.empty() == False):
             vals = input_queue.get()
             print(vals[0], vals[1], vals[2], vals[3], file=dataplus)
             print(vals[0], vals[1],file=data)
@@ -58,8 +58,8 @@ def store_driving_data():
 def signal_handler(signal, frame):
     global shutdown_signal
     shutdown_signal = True
+    capture_enable = False
     print("SIGINT received")
-    time.sleep(0.5)
     cap.release()
     cv2.destroyAllWindows()
     pygame.quit()
@@ -75,14 +75,16 @@ joystick.init()
 print(str(joystick.get_name()))
 print(str(joystick.get_numaxes()))
 
-time.sleep(5)
-
 # main loop
 while(True):
     pygame.event.pump()
     filename = str(str(start_time) + "." + str(i) + ".jpg")
     for event in pygame.event.get(): # event handling loop
         if event.type == pygame.JOYAXISMOTION:
+            # TODO: this code only works for steering with Xbox 360/One peripherals
+            # e.g. "Ferrari 458 Italia Racing Wheel for Xbox 360" I wrote this for
+            # use following if needed
+            # http://www.pygame.org/project-Windows+Xbox+360+Controller+for+pygame-2945-.html
             axis = event.dict['axis']
             value = event.dict['value']
             if (axis == 0):
@@ -96,28 +98,34 @@ while(True):
                     brake = 0
         if event.type == pygame.JOYBUTTONUP:
                 button = event.button
-                if button == 3:
+                if (button == 3 and capture_enable == False):
                     start_time = (int(time.time()))
                     capture_enable = True
+                    print("##############################################")
+                    print(" ")
                     print("starting capture")
+                    print(" ")
+                    print("##############################################")
                 if button == 2:
                     capture_enable = False
                     i = 0
+                    print("%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-")
                     print("stopping capture")
+                    print("%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-%-")
     pygame.event.clear()
-    print("wheel: ", wheel, " gas:", acc, " brake: ", brake, " frame: ", i)
+    print(capture_enable, "wheel: ", wheel, " gas:", acc, " brake: ", brake, " frame: ", i)
     if capture_enable == True:
         capim = threading.Thread(target=capture_image, name="capim", args=(filename,))
         capim.start()
         input_val = (filename, wheel, acc, brake)
         input_queue.put(input_val)
-
-    if i % 125 == 0:
-        storedata = threading.Thread(target=store_driving_data, name="storedata", args=())
-        storedata.start()
-        storeimage = threading.Thread(target=store_image, name="storeimage", args=())
-        storeimage.start()
+        if i % 125 == 0:
+            storedata = threading.Thread(target=store_driving_data, name="storedata", args=())
+            storedata.start()
+            storeimage = threading.Thread(target=store_image, name="storeimage", args=())
+            storeimage.start()
     clock.tick(25)
+    # limits to 25fps
     i += 1
 
 print("Ending capture")
