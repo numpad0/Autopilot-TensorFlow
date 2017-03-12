@@ -1,4 +1,5 @@
 import scipy.misc
+import numpy
 import model
 import cv2
 import time
@@ -29,17 +30,23 @@ image_queue = queue.Queue()
 clock = pygame.time.Clock()
 shutdown_signal = False
 
+crop = [0, 1, 0, 1]
+
 ret, last_image = cap.read()
+speedo = last_image
 
 # functions
 def capture_image(filename):
     global last_image
+    global speedo
     ret, frame = cap.read()
     #image = scipy.misc.imresize(frame, [66, 200]) / 255.0
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     image = (filename, frame)
     image_queue.put(image)
     last_image = frame
+    speedo = frame[crop[0]:crop[1], crop[2]:crop[3]]
+    # startY:endY, startX:endX
 
 def store_image():
     while(shutdown_signal == False):
@@ -60,6 +67,24 @@ def store_driving_data():
         data.flush()
         dataplus.flush()
 
+def set_speedo_zone(event, x, y, flags, param):
+    global crop
+    global speedo
+    rect = crop
+    if event == cv2.EVENT_LBUTTONDBLCLK:
+        rect[0] = y
+        rect[2] = x
+    if event == cv2.EVENT_RBUTTONDBLCLK:
+        rect[1] = y
+        rect[3] = x
+    if rect[0] > rect[1]:
+        rect[1] = rect[0] + 1
+    if rect[2] > rect[3]:
+        rect[3] = rect[2] + 1
+    numpy.resize(speedo, (rect[1] - rect[0], rect[3] - rect[2]))
+    crop = rect
+
+
 def signal_handler(signal, frame):
     global shutdown_signal
     shutdown_signal = True
@@ -79,6 +104,13 @@ joystick.init()
 # init
 print(str(joystick.get_name()))
 print(str(joystick.get_numaxes()))
+
+# void setup()
+
+
+cv2.imshow("last_image", cv2.cvtColor(last_image, cv2.COLOR_RGB2BGR))
+cv2.imshow("speedo", cv2.cvtColor(speedo, cv2.COLOR_RGB2BGR))
+cv2.setMouseCallback("last_image", set_speedo_zone)
 
 # main loop
 while(True):
@@ -146,7 +178,8 @@ while(True):
             storedata.start()
             storeimage = threading.Thread(target=store_image, name="storeimage", args=())
             storeimage.start()
-    cv2.imshow("frame", cv2.cvtColor(last_image, cv2.COLOR_RGB2BGR))
+    cv2.imshow("last_image", cv2.cvtColor(last_image, cv2.COLOR_RGB2BGR))
+    cv2.imshow("speedo", cv2.cvtColor(speedo, cv2.COLOR_RGB2BGR))
     clock.tick(10)
     # limits to 10fps
     i += 1

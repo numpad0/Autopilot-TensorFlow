@@ -3,64 +3,60 @@ import tensorflow as tf
 import driving_data
 import model
 
+# From https://www.tensorflow.org/programmers_guide/threading_and_queues
+# Except as otherwise noted, the content of this page is licensed under the
+# Creative Commons Attribution 3.0 License, and code samples are licensed under
+# the Apache 2.0 License. For details, see our Site Policies. Java is a registered
+# trademark of Oracle and/or its affiliates.
+
+LOGDIR = './save'
 L2NormConst = 0.001
 epochs      = 30
 batch_size  = 100
 
-# This time, let's start with 6 samples of 1 data point
-#x_input_data = tf.random_normal([6], mean=-1, stddev=4)
+# Thread body: loop until the coordinator indicates a stop was requested.
+# If some condition becomes true, ask the coordinator to stop.
+def MyLoop(coord):
+  while not coord.should_stop():
+    ...do something...
+    if ...some condition...:
+      coord.request_stop()
 
-# Note that the FIFO queue has still a capacity of 3
-q = tf.FIFOQueue(capacity=3, dtypes=tf.float32)
+# Main thread: create a coordinator.
+coord = tf.train.Coordinator()
 
-# To check what is happening in this case:
-# we will print a message each time "x_input_data" is actually computed
-# to be used in the "enqueue_many" operation
-for i in range(int(driving_data.num_images/batch_size)):
-    xs, ys = driving_data.LoadTrainBatch(batch_size)
-x_input_data = tf.Print(x_input_data, data=[x_input_data], message="Raw inputs data generated:", summarize=6)
-enqueue_op = q.enqueue_many(x_input_data)
+# Create 10 threads that run 'MyLoop()'
+threads = [threading.Thread(target=MyLoop, args=(coord,)) for i in xrange(10)]
 
-# To leverage multi-threading we create a "QueueRunner"
-# that will handle the "enqueue_op" outside of the main thread
-# We don't need much parallelism here, so we will use only 1 thread
-numberOfThreads = 1
-qr = tf.train.QueueRunner(q, [enqueue_op] * numberOfThreads)
-# Don't forget to add your "QueueRunner" to the QUEUE_RUNNERS collection
-tf.train.add_queue_runner(qr)
-
-input = q.dequeue()
-input = tf.Print(input, data=[q.size(), input], message="Nb elements left, input:")
-
-# fake graph: START
-y = input + 1
-# fake graph: END
-
-# We start the session as usual ...
-with tf.Session() as sess:
-    # But now we build our coordinator to coordinate our child threads with
-    # the main thread
-    coord = tf.train.Coordinator()
-    # Beware, if you don't start all your queues before runnig anything
-    # The main threads will wait for them to start and you will hang again
-    # This helper start all queues in tf.GraphKeys.QUEUE_RUNNERS
-    threads = tf.train.start_queue_runners(coord=coord)
-
-    # The QueueRunner will automatically call the enqueue operation
-    # asynchronously in its own thread ensuring that the queue is always full
-    # No more hanging for the main process, no more waiting for the GPU
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-    sess.run(y)
-
-    # We request our child threads to stop ...
-    coord.request_stop()
-    # ... and we wait for them to do so before releasing the main thread
+# Start the threads and wait for all of them to stop.
+for t in threads:
+  t.start()
 coord.join(threads)
+
+
+example = ...ops to create one example...
+# Create a queue, and an op that enqueues examples one at a time in the queue.
+queue = tf.RandomShuffleQueue(...)
+enqueue_op = queue.enqueue(example)
+# Create a training graph that starts by dequeuing a batch of examples.
+inputs = queue.dequeue_many(batch_size)
+train_op = ...use 'inputs' to build the training part of the graph...
+
+# Create a queue runner that will run 4 threads in parallel to enqueue
+# examples.
+qr = tf.train.QueueRunner(queue, [enqueue_op] * 4)
+
+# Launch the graph.
+sess = tf.Session()
+# Create a coordinator, launch the queue runner threads.
+coord = tf.train.Coordinator()
+enqueue_threads = qr.create_threads(sess, coord=coord, start=True)
+# Run the training loop, controlling termination with the coordinator.
+for step in xrange(1000000):
+    if coord.should_stop():
+        break
+    sess.run(train_op)
+# When done, ask the threads to stop.
+coord.request_stop()
+# And wait for them to actually do it.
+coord.join(enqueue_threads)
