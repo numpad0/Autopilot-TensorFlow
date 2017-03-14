@@ -1,6 +1,5 @@
-# record+acc.py
-# captures screen images and gamepad input from cv2.VideoCapture
-# while maintaining vehicle speed
+# recspeedo.py
+# captures screen images, gamepad input and a subset area from cv2.VideoCapture
 # Usage:
 #   Plug in a wheel,
 #   launch a game,
@@ -11,18 +10,16 @@
 #   Press button 3 to start recording.
 #   Press button 2 to stop. To change this settings, modify main loop.
 
-# ### scratch ###
-# ~~In addition to a larger preview screen, separate screen opens to preview
+# In addition to a larger preview screen, separate screen opens to preview
 # speedometer recording.
 # Inside the larger preview screen("frame"), specify capture area by:
-#   double click left mouse button to set top left corner.
-#   double click right mouse button to set top left corner.~~
-# ### scratch ### This is not implemented yet
+#   double clicking left mouse button to set top left corner.
+#   script will capture along 35px down and 55px right from there.
 
 # Screen recording will be saved to saved_dataset/*.jpg.
 # Controller input will be saved to saved_dataset/data.txt and dataplus.txt.
-# create saved_dataset directory before running.
-
+# Speedometer will be saved to speedo/*.jpg.
+# create saved_dataset and speedo directory before running.
 
 import scipy.misc
 import numpy
@@ -41,7 +38,10 @@ from subprocess import call
 # objects and numbers
 
 cap = cv2.VideoCapture(1)
-#TODO: above line contains a magic number
+cap.set(3,640)
+cap.set(4,360)
+# TODO: above line contains a magic number
+# get capture object and set frame size
 
 smoothed_angle = 0
 wheel = 0
@@ -52,6 +52,7 @@ capture_enable = False
 start_time = (int(time.time()))
 input_queue = queue.Queue()
 image_queue = queue.Queue()
+speedo_queue = queue.Queue()
 clock = pygame.time.Clock()
 shutdown_signal = False
 
@@ -71,6 +72,8 @@ def capture_image(filename):
     image_queue.put(image)
     last_image = frame
     speedo = frame[crop[0]:crop[1], crop[2]:crop[3]]
+    speedodata = (filename, speedo)
+    speedo_queue.put(speedodata)
     # startY:endY, startX:endX
 
 def store_image():
@@ -78,6 +81,13 @@ def store_image():
         while(image_queue.empty != True):
             image = image_queue.get()
             scipy.misc.imsave("saved_dataset/" + image[0], image[1])
+            #cv2.imshow("frame", cv2.cvtColor(image[1], cv2.COLOR_RGB2BGR))
+
+def store_speedo():
+    while(shutdown_signal == False):
+        while(speedo_queue.empty != True):
+            image = speedo_queue.get()
+            scipy.misc.imsave("speedo/" + image[0], image[1])
             #cv2.imshow("frame", cv2.cvtColor(image[1], cv2.COLOR_RGB2BGR))
 
 def store_driving_data():
@@ -99,9 +109,11 @@ def set_speedo_zone(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDBLCLK:
         rect[0] = y
         rect[2] = x
-    if event == cv2.EVENT_RBUTTONDBLCLK:
-        rect[1] = y
-        rect[3] = x
+    #if event == cv2.EVENT_RBUTTONDBLCLK:
+    #    rect[1] = y
+    #    rect[3] = x
+    rect[1] = (rect[0]+35)
+    rect[2] = (rect[2]+55)
     if rect[0] > rect[1]:
         rect[1] = rect[0] + 1
     if rect[2] > rect[3]:
@@ -198,12 +210,16 @@ while(True):
             with image_queue.mutex, input_queue.mutex:
                 image_queue.queue.clear()
                 input_queue.queue.clear()
+            with speedo_queue.mutex:
+                speedo_queue.queue.clear()
             i = 0
         if(capture_enable == True):
             storedata = threading.Thread(target=store_driving_data, name="storedata", args=())
             storedata.start()
             storeimage = threading.Thread(target=store_image, name="storeimage", args=())
             storeimage.start()
+            storespeedo = threading.Thread(target=store_speedo, name="storespeedo", args=())
+            storespeedo.start()
     cv2.imshow("last_image", cv2.cvtColor(last_image, cv2.COLOR_RGB2BGR))
     cv2.imshow("speedo", cv2.cvtColor(speedo, cv2.COLOR_RGB2BGR))
     clock.tick(25)

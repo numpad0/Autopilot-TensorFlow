@@ -1,3 +1,19 @@
+# record_dataset.py
+# captures screen images and gamepad input from cv2.VideoCapture
+# Usage:
+#   Plug in a wheel,
+#   launch a game,
+#   set up virtual webcam app(e.g. SCFH DSF) to feed screen to this.
+#   Then, run this script.
+
+# While script is running,
+#   Press button 3 to start recording.
+#   Press button 2 to stop. To change this settings, modify main loop.
+
+# Screen recording will be saved to saved_dataset/*.jpg.
+# Controller input will be saved to saved_dataset/data.txt and dataplus.txt.
+# create saved_dataset directory before running.
+
 import scipy.misc
 import model
 import cv2
@@ -15,6 +31,7 @@ from subprocess import call
 
 cap = cv2.VideoCapture(1)
 #TODO: above line contains a magic number
+# change above line to suit your PC
 
 smoothed_angle = 0
 wheel = 0
@@ -62,12 +79,13 @@ def store_driving_data():
 
 def signal_handler(signal, frame):
     global shutdown_signal
+    global cap
     shutdown_signal = True
     capture_enable = False
     print("SIGINT received")
     cap.release()
     cv2.destroyAllWindows()
-    pygame.quit()
+    #pygame.quit()
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
@@ -75,6 +93,7 @@ signal.signal(signal.SIGINT, signal_handler)
 pygame.init()
 joystick = pygame.joystick.Joystick(0)
 # TODO: above line contains magic number
+# change above line to suit your PC
 joystick.init()
 # init
 print(str(joystick.get_name()))

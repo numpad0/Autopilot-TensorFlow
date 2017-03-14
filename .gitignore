@@ -1,6 +1,7 @@
 driving_dataset/
 saved_dataset/
 dataset/
+speedo/
 logs/
 __pycache__/
 save/
